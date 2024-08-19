@@ -1,0 +1,8 @@
+cradle:
+  stack:
+    - path: "./"
+      component: "my-yesod-project:lib"
+    - path: "app"
+      component: "my-yesod-project:exe:my-yesod-project"
+    - path: "test"
+      component: "my-yesod-project:test:my-yesod-project-test"

@@ -1,0 +1,51 @@
+# Define build arguments for versions
+ARG GHC_VERSION=9.2.8
+ARG NODE_VERSION=22
+ARG LTS_RESOLVER=lts-20.26
+ARG PROJECT_NAME=my-yesod-project
+ARG TEMPLATE=yesodweb/postgres
+
+# Use the Haskell slim image for project initialization
+FROM haskell:${GHC_VERSION}-slim AS build
+
+# Re-define ARGs after FROM
+ARG NODE_VERSION
+ARG LTS_RESOLVER
+ARG PROJECT_NAME
+ARG TEMPLATE
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    libgmp-dev \
+    libffi-dev \
+    zlib1g-dev \
+    libncurses-dev \
+    libpq-dev \
+    curl \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and npm (required for Tailwind CSS)
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get install -y nodejs
+
+# Set up the working directory
+WORKDIR /output
+
+# Initialize the Yesod project using Stack with the specified resolver and template
+RUN stack new "${PROJECT_NAME}" "${TEMPLATE}" --resolver "${LTS_RESOLVER}"
+
+# Install project dependencies and build the project
+WORKDIR /output/${PROJECT_NAME}
+RUN stack setup --resolver ${LTS_RESOLVER}
+RUN stack build --resolver ${LTS_RESOLVER}
+
+# Create the Tailwind CSS input file
+RUN mkdir -p ./static/css && echo "@tailwind base;\n@tailwind components;\n@tailwind utilities;" > ./static/css/tailwind.css
+
+# Install Tailwind CSS
+RUN npm install -g tailwindcss
+RUN npx tailwindcss -i ./static/css/tailwind.css -o ./static/css/tailwind-output.css --minify
+
+# Command to copy files out of the container to the mounted volume
+CMD ["/bin/sh", "-c", "cp -r /output/${PROJECT_NAME}/. /app/"]
