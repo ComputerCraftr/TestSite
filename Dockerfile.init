@@ -33,10 +33,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
 WORKDIR /output
 
 # Initialize the Yesod project using Stack with the specified resolver and template
-RUN stack new "${PROJECT_NAME}" "${TEMPLATE}" --resolver "${LTS_RESOLVER}"
+RUN stack new "${PROJECT_NAME}" "${TEMPLATE}" --resolver "${LTS_RESOLVER}" --bare
 
 # Install project dependencies and build the project
-WORKDIR /output/${PROJECT_NAME}
 RUN stack setup --resolver ${LTS_RESOLVER}
 RUN stack build --resolver ${LTS_RESOLVER}
 
@@ -48,4 +47,4 @@ RUN npm install -g tailwindcss
 RUN npx tailwindcss -i ./static/css/tailwind.css -o ./static/css/tailwind-output.css --minify
 
 # Command to copy files out of the container to the mounted volume
-CMD ["/bin/sh", "-c", "cp -r /output/${PROJECT_NAME}/. /app/"]
+CMD ["/bin/sh", "-c", "cp -r /output/. /app/"]
