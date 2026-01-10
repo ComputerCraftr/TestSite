@@ -1,0 +1,44 @@
+# Define build arguments for versions
+ARG GHC_VERSION=9.2.8
+ARG NODE_VERSION=22
+ARG LTS_RESOLVER=lts-20.26
+
+# Use the Haskell slim image for development
+FROM haskell:${GHC_VERSION}-slim
+
+# Re-define ARGs after FROM
+ARG NODE_VERSION
+ARG LTS_RESOLVER
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    libgmp-dev \
+    libffi-dev \
+    zlib1g-dev \
+    libncurses-dev \
+    libpq-dev \
+    curl \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get install -y nodejs
+
+# Set up the working directory
+WORKDIR /app
+
+# Copy stack and package configuration files
+COPY stack.yaml package.yaml ./
+
+# Install project dependencies
+RUN stack setup --resolver ${LTS_RESOLVER}
+
+# Install Tailwind CSS globally
+RUN npm install -g tailwindcss
+
+# Expose the port Yesod runs on
+EXPOSE 3000
+
+# Command to ensure the project and assets are built, then start the Yesod development server
+CMD ["sh", "-c", "stack build --fast && npx tailwindcss -i ./static/css/tailwind.css -o ./static/css/tailwind-output.css --minify && stack exec yesod devel"]
